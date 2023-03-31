@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-func TestSend(t *testing.T) {
+func TestSend_simple(t *testing.T) {
 	c := Simple[string]()
 
-	go c.Send("ciao")
+	go WithSend[string](c)("ciao")
 
 	select {
 	case cmd := <-c.Cmd():

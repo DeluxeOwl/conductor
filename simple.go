@@ -28,7 +28,7 @@ func (c *simple[T]) Cmd() <-chan T {
 	return lis
 }
 
-func (c *simple[T]) Send(cmd T) {
+func (c *simple[T]) send(cmd T) {
 	c.mu.Lock()
 	for _, c := range c.listeners {
 		c <- cmd
@@ -36,13 +36,13 @@ func (c *simple[T]) Send(cmd T) {
 	c.mu.Unlock()
 }
 
-func (c *simple[T]) Notify(cmd T, signals ...os.Signal) {
+func (c *simple[T]) notify(cmd T, signals ...os.Signal) {
 	ch := make(chan os.Signal)
 	signal.Notify(ch, signals...)
 	go func() {
 		for {
 			<-ch
-			c.Send(cmd)
+			c.send(cmd)
 		}
 	}()
 }
@@ -83,7 +83,7 @@ func (c *simple[T]) WithContextPolicy(policy Policy[T]) *simple[T] {
 	go func() {
 		<-c.ctx.Done()
 		if cmd, ok := policy.Decide(); ok {
-			c.Send(cmd)
+			c.send(cmd)
 		}
 	}()
 
