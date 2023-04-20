@@ -2,16 +2,22 @@ package conductor
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
 )
 
+const (
+	cmdBufSize = 10
+)
+
 type simple[T any] struct {
 	listeners []chan T
 	mu        sync.Mutex
 	ctx       context.Context
+	logFile   *os.File
 }
 
 /* Implement context.Context */
@@ -37,7 +43,7 @@ func (c *simple[T]) Value(key any) any {
 /* Implement Conductor[T] */
 
 func (c *simple[T]) Cmd() <-chan T {
-	lis := make(chan T)
+	lis := make(chan T, cmdBufSize)
 	c.mu.Lock()
 	c.listeners = append(c.listeners, lis)
 	c.mu.Unlock()
@@ -66,8 +72,9 @@ func (c *simple[T]) WithContextPolicy(policy Policy[T]) Conductor[T] {
 
 func (c *simple[T]) send(cmd T) {
 	c.mu.Lock()
-	for _, c := range c.listeners {
-		c <- cmd
+	for i, ch := range c.listeners {
+		fmt.Fprintf(c.logFile, "Sending %v to %d listener\n", cmd, i)
+		ch <- cmd
 	}
 	c.mu.Unlock()
 }
@@ -80,7 +87,7 @@ func (c *simple[T]) notify(cmd T, signals ...os.Signal) {
 		case <-c.Done():
 			return
 		case <-ch:
-			c.send(cmd)
+			go c.send(cmd)
 		}
 	}
 }
@@ -90,7 +97,8 @@ func (c *simple[T]) notify(cmd T, signals ...os.Signal) {
 // Simple creates a [Conductor] with a single type of listener.
 func Simple[T any]() Conductor[T] {
 	return &simple[T]{
-		ctx: context.TODO(),
+		ctx:     context.TODO(),
+		logFile: initLogFile(),
 	}
 }
 
