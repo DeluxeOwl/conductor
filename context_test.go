@@ -6,7 +6,7 @@ import (
 )
 
 func TestWithCancel(t *testing.T) {
-	c, cancel := WithCancel[string](Simple[string]())
+	c, cancel := WithCancel(Simple[string]())
 
 	go cancel()
 
@@ -22,7 +22,7 @@ func TestWithDeadline(t *testing.T) {
 	const delta = 25 * time.Millisecond
 	now := time.Now()
 
-	c, cancel := WithDeadline[string](Simple[string](), now.Add(delta))
+	c, cancel := WithDeadline(Simple[string](), now.Add(delta))
 
 	go cancel()
 
@@ -37,7 +37,7 @@ func TestWithDeadline(t *testing.T) {
 func TestWithTimeout(t *testing.T) {
 	const delta = 25 * time.Millisecond
 
-	c, cancel := WithTimeout[string](Simple[string](), delta)
+	c, cancel := WithTimeout(Simple[string](), delta)
 
 	go cancel()
 

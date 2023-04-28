@@ -62,7 +62,7 @@ func TestSend_tagged_specifyingTag(t *testing.T) {
 	first := setupListener(c, true, "first")
 	second := setupListener(c, false, "second")
 
-	go Send[string](c, "first")("ciao")
+	go Send(c, "first")("ciao")
 
 	var allReceived, firstReceived bool
 testLoop:
@@ -163,7 +163,7 @@ func TestNotify_tagged_notifyTagged(t *testing.T) {
 	started := make(chan struct{})
 	go func() {
 		started <- struct{}{}
-		Notify[string](c, "first")("ciao", syscall.SIGUSR2)
+		Notify(c, "first")("ciao", syscall.SIGUSR2)
 	}()
 
 	<-started

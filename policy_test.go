@@ -88,7 +88,7 @@ testLoop:
 }
 
 func ExampleConstantPolicy() {
-	simple, cancel := WithCancel[string](Simple[string]())
+	simple, cancel := WithCancel(Simple[string]())
 	simple.WithContextPolicy(ConstantPolicy("ciao"))
 
 	lis := simple.Cmd()
