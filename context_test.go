@@ -13,7 +13,7 @@ func TestWithCancel(t *testing.T) {
 	select {
 	case <-c.Done():
 		// Happy path
-	case <-time.After(50 * time.Millisecond):
+	case <-time.After(failureTimeout):
 		t.Fatal("Timeout")
 	}
 }

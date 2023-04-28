@@ -37,7 +37,7 @@ testLoop:
 				t.Fatal(err)
 			}
 			secondReceived = true
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(successTimeout):
 			break testLoop
 		}
 	}
@@ -80,7 +80,7 @@ testLoop:
 			firstReceived = true
 		case err := <-second:
 			t.Fatalf("second received: %s", err)
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(successTimeout):
 			break testLoop
 		}
 	}
@@ -139,7 +139,7 @@ testLoop:
 				t.Fatal(err)
 			}
 			secondReceived = true
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(successTimeout):
 			break testLoop
 		}
 	}
@@ -197,7 +197,7 @@ testLoop:
 			firstReceived = true
 		case err := <-second:
 			t.Fatalf("second received: %s", err)
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(successTimeout):
 			break testLoop
 		}
 	}
@@ -221,7 +221,7 @@ func TestTaggedAsContext(t *testing.T) {
 	select {
 	case <-expiring.Done():
 		// success
-	case <-time.After(50 * time.Millisecond):
+	case <-time.After(failureTimeout):
 		t.Fatalf("Timeout")
 	}
 }
@@ -234,11 +234,15 @@ func ExampleSend_tagged() {
 	lisThird := WithTag(tagged, "third").Cmd()
 
 	tagged, cancel := WithCancel(tagged)
+	feedback := make(chan struct{}, 3)
 
 	go func() {
 		Send(tagged, "first")("ciao")
 		Send(tagged, "second")("miao")
 		Send(tagged, "third")("bau")
+		<-feedback
+		<-feedback
+		<-feedback
 		cancel()
 	}()
 
@@ -247,10 +251,13 @@ loop:
 		select {
 		case cmd := <-lisFirst:
 			fmt.Println(cmd)
+			feedback <- struct{}{}
 		case cmd := <-lisSecond:
 			fmt.Println(cmd)
+			feedback <- struct{}{}
 		case cmd := <-lisThird:
 			fmt.Println(cmd)
+			feedback <- struct{}{}
 		case <-tagged.Done():
 			break loop
 		}

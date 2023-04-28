@@ -2,6 +2,12 @@ package conductor
 
 import (
 	"fmt"
+	"time"
+)
+
+const (
+	failureTimeout = 50 * time.Millisecond
+	successTimeout = 50 * time.Millisecond
 )
 
 func setupListener(c Conductor[string], shouldReceive bool, tag ...string) chan error {

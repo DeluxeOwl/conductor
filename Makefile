@@ -4,7 +4,7 @@ REPETITIONS ?= 100
 
 .PHONY: test
 test:
-	@go test -count=1 ./...
+	@go test -count=1 -race ./...
 
 .PHONY: test-rep
 test-rep:

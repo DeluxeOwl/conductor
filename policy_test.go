@@ -32,7 +32,7 @@ testLoop:
 				t.Fatalf("unexpected: %s", cmd)
 			}
 			second++
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(successTimeout):
 			break testLoop
 		}
 	}
@@ -73,7 +73,7 @@ testLoop:
 			firstReceived = true
 		case err := <-second:
 			t.Fatalf("second received: %s", err)
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(successTimeout):
 			break testLoop
 		}
 	}
@@ -123,7 +123,7 @@ loop:
 			fmt.Println(cmd)
 		case cmd := <-lisThird:
 			fmt.Println(cmd)
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(successTimeout):
 			break loop
 		}
 	}
