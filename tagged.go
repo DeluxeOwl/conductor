@@ -73,7 +73,7 @@ func (t *tagged[T]) cmd(tag string) <-chan T {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if c, ok := t.tagged[tag]; ok {
-		return c.Cmd()
+		return c.cmd(3)
 	}
 	c := SimpleFromContext[T](t.ctx)
 	t.tagged[tag] = c.(*simple[T])

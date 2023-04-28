@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"time"
 )
 
 const (
-	cmdBufSize = 10
+	cmdBufSize = 1
 )
 
 type simple[T any] struct {
-	listeners []chan T
-	mu        sync.Mutex
+	listeners map[string]chan T
+	mu        sync.RWMutex
 	ctx       context.Context
 	logFile   *os.File
 }
@@ -43,11 +44,7 @@ func (c *simple[T]) Value(key any) any {
 /* Implement Conductor[T] */
 
 func (c *simple[T]) Cmd() <-chan T {
-	lis := make(chan T, cmdBufSize)
-	c.mu.Lock()
-	c.listeners = append(c.listeners, lis)
-	c.mu.Unlock()
-	return lis
+	return c.cmd(2)
 }
 
 func (c *simple[T]) WithContext(ctx context.Context) Conductor[T] {
@@ -70,13 +67,40 @@ func (c *simple[T]) WithContextPolicy(policy Policy[T]) Conductor[T] {
 
 /* Internal functions */
 
-func (c *simple[T]) send(cmd T) {
+func (c *simple[T]) cmd(level int) <-chan T {
+	_, file, line, ok := runtime.Caller(level)
+	if !ok {
+		fmt.Fprintln(c.logFile, "Cannot find caller")
+		// XXX: we return a closed channel, as we are not able to properly return
+		// a valid channel without leaking it for each case statement evaluation.
+		ch := make(chan T)
+		close(ch)
+		return ch
+	}
+	key := fmt.Sprintf("%s:%d", file, line)
+
+	c.mu.RLock()
+	if ch, ok := c.listeners[key]; ok {
+		c.mu.RUnlock()
+		return ch
+	}
+	c.mu.RUnlock()
+
 	c.mu.Lock()
-	for i, ch := range c.listeners {
-		fmt.Fprintf(c.logFile, "Sending %v to %d listener\n", cmd, i)
+	defer c.mu.Unlock()
+
+	lis := make(chan T, cmdBufSize)
+	c.listeners[key] = lis
+	return lis
+}
+
+func (c *simple[T]) send(cmd T) {
+	c.mu.RLock()
+	for k, ch := range c.listeners {
+		fmt.Fprintf(c.logFile, "Sending %v to %s listener\n", cmd, k)
 		ch <- cmd
 	}
-	c.mu.Unlock()
+	c.mu.RUnlock()
 }
 
 func (c *simple[T]) notify(cmd T, signals ...os.Signal) {
@@ -97,8 +121,9 @@ func (c *simple[T]) notify(cmd T, signals ...os.Signal) {
 // Simple creates a [Conductor] with a single type of listener.
 func Simple[T any]() Conductor[T] {
 	return &simple[T]{
-		ctx:     context.TODO(),
-		logFile: initLogFile(),
+		ctx:       context.TODO(),
+		logFile:   initLogFile(),
+		listeners: make(map[string]chan T),
 	}
 }
 
