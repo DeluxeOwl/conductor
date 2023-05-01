@@ -36,10 +36,10 @@ func TestNotify_simple(t *testing.T) {
 
 	go Notify(c)("ciao", syscall.SIGUSR1)
 
-    // XXX: flakey test
-    var attempts int
+	// XXX: flakey test
+	var attempts int
 loop:
-	for ;attempts < 5; attempts++ {
+	for ; attempts < 5; attempts++ {
 		p, err := os.FindProcess(os.Getpid())
 		if err != nil {
 			t.Fatalf("Could not find the process: %s", err)
@@ -59,9 +59,9 @@ loop:
 		}
 	}
 
-    if attempts == 5 {
-        t.Fatal("Failed to notify 5 times in a row")
-    }
+	if attempts == 5 {
+		t.Fatal("Failed to notify 5 times in a row")
+	}
 }
 
 func TestAsContext(t *testing.T) {

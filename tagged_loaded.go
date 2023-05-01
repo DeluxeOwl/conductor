@@ -1,7 +1,7 @@
 package conductor
 
 import (
-    "context"
+	"context"
 	"time"
 )
 
