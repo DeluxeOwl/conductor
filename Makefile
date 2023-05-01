@@ -27,3 +27,7 @@ test-cov: $(TESTOUT)
 .PHONY: clean
 clean:
 	rm -rf $(TESTOUT)
+
+.PHONY: lint
+lint:
+	@gofmt -d -e .
