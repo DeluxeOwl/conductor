@@ -6,8 +6,9 @@ import (
 )
 
 type loaded[T any] struct {
-	wrapped *tagged[T]
-	tag     string
+	wrapped       *tagged[T]
+	tag           string
+	discriminator []any
 }
 
 /* Implement context.Context */
@@ -33,7 +34,7 @@ func (l *loaded[T]) Value(key any) any {
 /* Implement Conductor[T] */
 
 func (l *loaded[T]) Cmd() <-chan T {
-	return l.wrapped.cmd(l.tag)
+	return l.wrapped.cmd(l.tag, l.discriminator...)
 }
 
 func (l *loaded[T]) WithContext(ctx context.Context) Conductor[T] {

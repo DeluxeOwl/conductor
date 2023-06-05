@@ -69,15 +69,17 @@ func (c *tagged[T]) WithContextPolicy(policy Policy[T]) Conductor[T] {
 
 /* Internal functions */
 
-func (t *tagged[T]) cmd(tag string) <-chan T {
+func (t *tagged[T]) cmd(tag string, discriminator ...any) <-chan T {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	discriminator = append([]any{any(tag)}, discriminator...)
 	if c, ok := t.tagged[tag]; ok {
-		return c.cmd(3)
+		return c.cmd(3, discriminator...)
 	}
 	c := SimpleFromContext[T](t.ctx)
 	t.tagged[tag] = c.(*simple[T])
-	return c.Cmd()
+	return c.(*simple[T]).cmd(2, discriminator...)
 }
 
 func (t *tagged[T]) send(cmd T, tags []any) {
@@ -135,14 +137,15 @@ func Tagged[T any]() Conductor[T] {
 }
 
 // WithTag loads a tagged listener in a Tagged [Conductor].
-func WithTag[T any](conductor Conductor[T], tag string) Conductor[T] {
+func WithTag[T any](conductor Conductor[T], tag string, discriminator ...any) Conductor[T] {
 	c, ok := any(conductor).(*tagged[T])
 	if !ok {
 		panic("not a conductor.Tagged")
 	}
 	return &loaded[T]{
-		wrapped: c,
-		tag:     tag,
+		wrapped:       c,
+		tag:           tag,
+		discriminator: discriminator,
 	}
 }
 

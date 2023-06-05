@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"runtime"
 	"sync"
 	"time"
 )
 
 const (
-	cmdBufSize = 1
+	cmdBufSize     = 1
+	maxNestedCalls = 10
+)
+
+var (
+	goModRe = regexp.MustCompile(`^(git.sr.ht/~blallo/|/.*/)conductor/[a-z_]+\.go$`)
+	testRe  = regexp.MustCompile(`^(git.sr.ht/~blallo/|/.*/)conductor/[a-z_]+\_test.go$`)
 )
 
 type simple[T any] struct {
@@ -67,9 +74,10 @@ func (c *simple[T]) WithContextPolicy(policy Policy[T]) Conductor[T] {
 
 /* Internal functions */
 
-func (c *simple[T]) cmd(level int) <-chan T {
-	_, file, line, ok := runtime.Caller(level)
-	if !ok {
+func (c *simple[T]) cmd(level int, discriminator ...any) <-chan T {
+	pc := make([]uintptr, maxNestedCalls)
+	n := runtime.Callers(level, pc)
+	if n == 0 {
 		fmt.Fprintln(c.logFile, "Cannot find caller")
 		// XXX: we return a closed channel, as we are not able to properly return
 		// a valid channel without leaking it for each case statement evaluation.
@@ -77,7 +85,41 @@ func (c *simple[T]) cmd(level int) <-chan T {
 		close(ch)
 		return ch
 	}
-	key := fmt.Sprintf("%s:%d", file, line)
+
+	pc = pc[:n]
+	frames := runtime.CallersFrames(pc)
+	var file string
+	var line int
+	var progCounter uintptr
+	// XXX: here we unwind the stack until we exit the conductor/ package.
+frameLoop:
+	for {
+		frame, more := frames.Next()
+		//fmt.Fprintf(c.logFile, "unwinding stack -> %s:%d:%d\n", frame.File, frame.Line, frame.PC)
+
+		if testRe.MatchString(frame.File) || !goModRe.MatchString(frame.File) {
+			file = frame.File
+			line = frame.Line
+			progCounter = frame.PC
+			break frameLoop
+		}
+
+		if !more {
+			fmt.Fprintln(c.logFile, "Cannot find caller")
+			// XXX: we return a closed channel, as we are not able to properly return
+			// a valid channel without leaking it for each case statement evaluation.
+			ch := make(chan T)
+			close(ch)
+			return ch
+		}
+	}
+
+	key := fmt.Sprintf("%s:%d:%d", file, line, progCounter)
+	for _, dis := range discriminator {
+		key = fmt.Sprintf("%s:%s", key, fmt.Sprint(dis))
+	}
+
+	fmt.Fprintln(c.logFile, "cmd key ->", key)
 
 	c.mu.RLock()
 	if ch, ok := c.listeners[key]; ok {
@@ -97,7 +139,13 @@ func (c *simple[T]) cmd(level int) <-chan T {
 func (c *simple[T]) send(cmd T) {
 	c.mu.RLock()
 	for k, ch := range c.listeners {
-		fmt.Fprintf(c.logFile, "Sending %v to %s listener\n", cmd, k)
+		var cmdStr string
+		if stringer, ok := any(cmd).(fmt.Stringer); ok {
+			cmdStr = stringer.String()
+		} else {
+			cmdStr = fmt.Sprintf("%v", cmd)
+		}
+		fmt.Fprintf(c.logFile, "Sending %s to %s listener\n", cmdStr, k)
 		ch <- cmd
 	}
 	c.mu.RUnlock()
