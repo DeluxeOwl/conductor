@@ -7,12 +7,14 @@ import (
 	"os/signal"
 	"regexp"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
 
 const (
-	cmdBufSize     = 1
+	cmdBufSize     = 10
 	maxNestedCalls = 10
 )
 
@@ -74,6 +76,17 @@ func (c *simple[T]) WithContextPolicy(policy Policy[T]) Conductor[T] {
 
 /* Internal functions */
 
+func goid() int {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+	id, err := strconv.Atoi(idField)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get goroutine id: %v", err))
+	}
+	return id
+}
+
 func (c *simple[T]) cmd(level int, discriminator ...any) <-chan T {
 	pc := make([]uintptr, maxNestedCalls)
 	n := runtime.Callers(level, pc)
@@ -114,7 +127,7 @@ frameLoop:
 		}
 	}
 
-	key := fmt.Sprintf("%s:%d:%d", file, line, progCounter)
+	key := fmt.Sprintf("%s:%d:%d:%d", file, line, progCounter, goid())
 	for _, dis := range discriminator {
 		key = fmt.Sprintf("%s:%s", key, fmt.Sprint(dis))
 	}
