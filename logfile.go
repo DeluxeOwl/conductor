@@ -2,16 +2,26 @@ package conductor
 
 import (
 	"os"
+	"sync"
 )
 
 var (
-	LogFilePath *string
+	logFilePath *string
+	logFile     *os.File
+	mu          sync.Mutex
 )
 
 func initLogFile() *os.File {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if logFile != nil {
+		return logFile
+	}
+
 	filePath := os.DevNull
-	if LogFilePath != nil {
-		filePath = *LogFilePath
+	if logFilePath != nil {
+		filePath = *logFilePath
 	}
 
 	f, err := os.Create(filePath)
@@ -19,5 +29,20 @@ func initLogFile() *os.File {
 		panic(err)
 	}
 
+	logFile = f
+
 	return f
+}
+
+// SetLogFile explicitly sets the file where to log the inner workings of the library.
+// Panics if called more than once.
+func SetLogFile(path string) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if logFilePath == nil {
+		logFilePath = &path
+	} else {
+		panic("calling SetLogFile more than once")
+	}
 }

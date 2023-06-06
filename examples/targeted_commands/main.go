@@ -12,8 +12,7 @@ import (
 )
 
 func init() {
-	logPath := "/tmp/targeted_commands.log"
-	conductor.LogFilePath = &logPath
+	conductor.SetLogFile("/tmp/targeted_commands.log")
 }
 
 type Action int

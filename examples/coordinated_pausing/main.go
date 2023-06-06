@@ -120,8 +120,7 @@ func funkyTime(max int) time.Duration {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	var logFile = "/tmp/conductor.log"
-	conductor.LogFilePath = &logFile
+	conductor.SetLogFile("/tmp/coordinated_pausing.log")
 }
 
 func main() {
