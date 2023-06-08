@@ -152,13 +152,7 @@ frameLoop:
 func (c *simple[T]) send(cmd T) {
 	c.mu.RLock()
 	for k, ch := range c.listeners {
-		var cmdStr string
-		if stringer, ok := any(cmd).(fmt.Stringer); ok {
-			cmdStr = stringer.String()
-		} else {
-			cmdStr = fmt.Sprintf("%v", cmd)
-		}
-		fmt.Fprintf(c.logFile, "Sending %s to %s listener\n", cmdStr, k)
+		fmt.Fprintf(c.logFile, "Sending %s to %s listener\n", fmtCmd(cmd), k)
 		ch <- cmd
 	}
 	c.mu.RUnlock()

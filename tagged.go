@@ -2,6 +2,7 @@ package conductor
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -84,6 +85,7 @@ func (t *tagged[T]) cmd(tag string, discriminator ...any) <-chan T {
 
 func (t *tagged[T]) send(cmd T, tags []any) {
 	t.mu.RLock()
+	fmt.Fprintf(logFile, "Sending %s to %s listener\n", fmtCmd(cmd), tags)
 	for _, tag := range append(tags, defaultTag) {
 		if c, ok := t.tagged[tag]; ok {
 			c.send(cmd)
@@ -94,6 +96,7 @@ func (t *tagged[T]) send(cmd T, tags []any) {
 
 func (t *tagged[T]) broadcast(cmd T) {
 	t.mu.RLock()
+	fmt.Fprintf(logFile, "Sending %s to all listener\n", fmtCmd(cmd))
 	for _, c := range t.tagged {
 		c.send(cmd)
 	}
