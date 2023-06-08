@@ -182,7 +182,7 @@ func (m *WorkerMap) ParseCmd(c conductor.Conductor[Action], cmd string) error {
 			if err != nil {
 				return err
 			}
-			conductor.Send(c, color)(ActionStart)
+			conductor.Send(c, color.String())(ActionStart)
 		}
 
 	case "stop":
@@ -193,7 +193,7 @@ func (m *WorkerMap) ParseCmd(c conductor.Conductor[Action], cmd string) error {
 			if err != nil {
 				return err
 			}
-			conductor.Send(c, color)(ActionStop)
+			conductor.Send(c, color.String())(ActionStop)
 		}
 
 	case "reset":
@@ -204,9 +204,11 @@ func (m *WorkerMap) ParseCmd(c conductor.Conductor[Action], cmd string) error {
 			if err != nil {
 				return err
 			}
-			conductor.Send(c, color)(ActionReset)
+			conductor.Send(c, color.String())(ActionReset)
 		}
 
+	default:
+		return fmt.Errorf("not a command: %s", comps[0])
 	}
 	return nil
 }
