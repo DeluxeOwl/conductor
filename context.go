@@ -10,7 +10,7 @@ import (
 // returned as second value of the output.
 func WithCancel[T any](conductor Conductor[T]) (Conductor[T], context.CancelFunc) {
 	ctx, cancel := context.WithCancel(conductor)
-	return newConductorWithCtx(conductor, ctx), cancel
+	return NewConductorWithCtx(conductor, ctx), cancel
 }
 
 // WithDeadline mimics what [context.WithCancel] does, but for a [Conductor]. It returns
@@ -18,7 +18,7 @@ func WithCancel[T any](conductor Conductor[T]) (Conductor[T], context.CancelFunc
 // returned as second value of the output, and that will be cancelled at the given deadline.
 func WithDeadline[T any](conductor Conductor[T], deadline time.Time) (Conductor[T], context.CancelFunc) {
 	ctx, cancel := context.WithDeadline(conductor, deadline)
-	return newConductorWithCtx(conductor, ctx), cancel
+	return NewConductorWithCtx(conductor, ctx), cancel
 }
 
 // WithTimeout mimics what [context.WithCancel] does, but for a [Conductor]. It returns
@@ -26,10 +26,10 @@ func WithDeadline[T any](conductor Conductor[T], deadline time.Time) (Conductor[
 // returned as second value of the output, and that will be cancelled after the given interval.
 func WithTimeout[T any](conductor Conductor[T], interval time.Duration) (Conductor[T], context.CancelFunc) {
 	ctx, cancel := context.WithTimeout(conductor, interval)
-	return newConductorWithCtx(conductor, ctx), cancel
+	return NewConductorWithCtx(conductor, ctx), cancel
 }
 
-func newConductorWithCtx[T any](conductor Conductor[T], ctx context.Context) Conductor[T] {
+func NewConductorWithCtx[T any](conductor Conductor[T], ctx context.Context) Conductor[T] {
 	switch c := any(conductor).(type) {
 	case *simple[T]:
 		return &simple[T]{
