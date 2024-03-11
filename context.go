@@ -29,6 +29,9 @@ func WithTimeout[T any](conductor Conductor[T], interval time.Duration) (Conduct
 	return NewConductorWithCtx(conductor, ctx), cancel
 }
 
+// NewConductorWithCtx creates a new conductor that hinerits the features of the given
+// one, but replaces the inner context.Context.
+// NOTE: the conductor must be non-nil, or the function will panic.
 func NewConductorWithCtx[T any](conductor Conductor[T], ctx context.Context) Conductor[T] {
 	switch c := any(conductor).(type) {
 	case *simple[T]:
